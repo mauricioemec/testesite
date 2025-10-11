@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opções: Call e Put - Guia Básico</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .intro {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .intro h2 {
+            color: #4a5568;
+            margin-bottom: 15px;
+        }
+
+        .intro p {
+            font-size: 1.1em;
+            color: #666;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .option-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            border-left: 5px solid;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+
+        .call-card {
+            border-left-color: #28a745;
+        }
+
+        .put-card {
+            border-left-color: #dc3545;
+        }
+
+        .option-title {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .call-title {
+            color: #28a745;
+        }
+
+        .put-title {
+            color: #dc3545;
+        }
+
+        .icon {
+            font-size: 1.2em;
+        }
+
+        .definition {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #e9ecef;
+        }
+
+        .example {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .example h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .comparison {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 30px;
+            margin-top: 40px;
+        }
+
+        .comparison h3 {
+            color: #1976d2;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .comparison-table th {
+            background-color: #1976d2;
+            color: white;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background-color: #f5f5f5;
+        }
+
+        .key-points {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .key-points h3 {
+            color: #495057;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .points-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .points-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .points-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #28a745;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .disclaimer {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .disclaimer h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .disclaimer p {
+            color: #856404;
+            font-size: 0.9em;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .comparison-table {
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📈 Opções: Call e Put</h1>
+            <p class="subtitle">Entenda os fundamentos das opções de forma simples e prática</p>
+        </header>
+
+        <div class="content">
+            <div class="intro">
+                <h2>O que são Opções?</h2>
+                <p>
+                    Opções são contratos financeiros que dão ao comprador o <strong>direito</strong> (mas não a obrigação) 
+                    de comprar ou vender um ativo a um preço específico até uma data determinada. 
+                    Existem dois tipos principais: <strong>Call</strong> e <strong>Put</strong>.
+                </p>
+            </div>
+
+            <div class="options-grid">
+                <div class="option-card call-card">
+                    <h3 class="option-title call-title">
+                        <span class="icon">📈</span>
+                        Opção CALL
+                    </h3>
+                    
+                    <div class="definition">
+                        <strong>Definição:</strong> Dá o direito de <strong>COMPRAR</strong> um ativo a um preço determinado (strike) até a data de vencimento.
+                    </div>
+
+                    <p><strong>Quando usar:</strong></p>
+                    <ul>
+                        <li>Quando você acredita que o preço do ativo vai <strong>subir</strong></li>
+                        <li>Para especular com alta alavancagem</li>
+                        <li>Para proteger uma posição vendida</li>
+                    </ul>
+
+                    <div class="example">
+                        <h4>💡 Exemplo Prático</h4>
+                        <p>
+                            <strong>Ação PETR4 = R$ 30,00</strong><br>
+                            Você compra uma CALL com strike R$ 32,00 por R$ 1,50.<br><br>
+                            <strong>Se PETR4 subir para R$ 35,00:</strong><br>
+                            Lucro = (R$ 35,00 - R$ 32,00) - R$ 1,50 = <span style="color: #28a745;"><strong>R$ 1,50</strong></span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="option-card put-card">
+                    <h3 class="option-title put-title">
+                        <span class="icon">📉</span>
+                        Opção PUT
+                    </h3>
+                    
+                    <div class="definition">
+                        <strong>Definição:</strong> Dá o direito de <strong>VENDER</strong> um ativo a um preço determinado (strike) até a data de vencimento.
+                    </div>
+
+                    <p><strong>Quando usar:</strong></p>
+                    <ul>
+                        <li>Quando você acredita que o preço do ativo vai <strong>cair</strong></li>
+                        <li>Para proteger uma carteira (hedge)</li>
+                        <li>Para especular com queda de preços</li>
+                    </ul>
+
+                    <div class="example">
+                        <h4>💡 Exemplo Prático</h4>
+                        <p>
+                            <strong>Ação VALE3 = R$ 60,00</strong><br>
+                            Você compra uma PUT com strike R$ 58,00 por R$ 2,00.<br><br>
+                            <strong>Se VALE3 cair para R$ 52,00:</strong><br>
+                            Lucro = (R$ 58,00 - R$ 52,00) - R$ 2,00 = <span style="color: #28a745;"><strong>R$ 4,00</strong></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comparison">
+                <h3>🔍 Comparação Rápida</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Característica</th>
+                            <th>CALL</th>
+                            <th>PUT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Direito</strong></td>
+                            <td>Comprar o ativo</td>
+                            <td>Vender o ativo</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Expectativa</strong></td>
+                            <td>Preço vai subir</td>
+                            <td>Preço vai cair</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Lucro máximo</strong></td>
+                            <td>Ilimitado</td>
+                            <td>Strike - Prêmio pago</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Prejuízo máximo</strong></td>
+                            <td>Prêmio pago</td>
+                            <td>Prêmio pago</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Ponto de equilíbrio</strong></td>
+                            <td>Strike + Prêmio</td>
+                            <td>Strike - Prêmio</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="key-points">
+                <h3>🎯 Pontos-Chave para Lembrar</h3>
+                <ul class="points-list">
+                    <li>Opções têm data de vencimento - após essa data, perdem valor</li>
+                    <li>O prêmio pago é o máximo que você pode perder</li>
+                    <li>Volatilidade do ativo afeta o preço das opções</li>
+                    <li>Não é obrigatório exercer a opção - você pode vendê-la antes do vencimento</li>
+                    <li>Opções são instrumentos de alta alavancagem - use com cuidado</li>
+                    <li>Estude sempre antes de investir e considere sua tolerância ao risco</li>
+                </ul>
+            </div>
+
+            <div class="disclaimer">
+                <h4>⚠️ Aviso Importante</h4>
+                <p>
+                    Este conteúdo é apenas educativo e não constitui recomendação de investimento. 
+                    Opções são instrumentos complexos e de alto risco. Sempre consulte um profissional 
+                    qualificado antes de tomar decisões de investimento.
+                </p>
+            </div>
+        </div>
+
+        <footer>
+            <p>📚 Material educativo sobre opções • Desenvolvido para fins de aprendizado</p>
+        </footer>
+    </div>
+</body>
+</html>
