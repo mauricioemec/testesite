@@ -152,6 +152,7 @@ const App = {
         const userName = document.getElementById('user-name');
         const logoutBtn = document.getElementById('logout-btn');
         const sidebar = document.getElementById('sidebar');
+        const usuariosMenuItem = document.getElementById('usuarios-menu-item');
 
         if (user) {
             if (userInfo) {
@@ -162,10 +163,16 @@ const App = {
             if (userName) userName.textContent = user.name;
             if (logoutBtn) logoutBtn.style.display = 'block';
             if (sidebar) sidebar.style.display = 'flex';
+
+            // Show users menu only for admins
+            if (usuariosMenuItem) {
+                usuariosMenuItem.style.display = user.role === 'admin' ? 'block' : 'none';
+            }
         } else {
             if (userInfo) userInfo.style.display = 'none';
             if (logoutBtn) logoutBtn.style.display = 'none';
             if (sidebar) sidebar.style.display = 'none';
+            if (usuariosMenuItem) usuariosMenuItem.style.display = 'none';
         }
     },
 
@@ -280,7 +287,8 @@ const App = {
             'projecao': this.getProjecaoPage(),
             'valuation': this.getValuationPage(),
             'calendario': this.getCalendarioPage(),
-            'documentacao': this.getDocumentacaoPage()
+            'documentacao': this.getDocumentacaoPage(),
+            'usuarios': this.getUsuariosPage()
         };
 
         return pages[page] || this.get404Page();
@@ -307,7 +315,8 @@ const App = {
             'projecao': () => this.initProjecao(),
             'valuation': () => this.initValuation(),
             'calendario': () => this.initCalendario(),
-            'documentacao': () => this.initDocumentacao()
+            'documentacao': () => this.initDocumentacao(),
+            'usuarios': () => this.initUsuarios()
         };
 
         if (initFunctions[page]) {
@@ -1042,6 +1051,47 @@ const App = {
     },
 
     /**
+     * Get Usuarios page content
+     */
+    getUsuariosPage() {
+        // Check if user is admin
+        const currentUser = Auth.getCurrentUser();
+        if (!currentUser || currentUser.role !== 'admin') {
+            return `
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <h2 class="empty-state-title">Acesso Negado</h2>
+                    <p class="empty-state-description">Você não tem permissão para acessar esta página.</p>
+                    <a href="#dashboard" class="btn btn-primary">Voltar ao Dashboard</a>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="page-header flex-between">
+                <div>
+                    <h1><i class="fas fa-user-cog"></i> Gerenciamento de Usuários</h1>
+                    <p class="text-muted">Gerencie os usuários do sistema</p>
+                </div>
+                <button class="btn btn-primary" id="add-user">
+                    <i class="fas fa-plus"></i> Adicionar Usuário
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Usuários Cadastrados</h3>
+                </div>
+                <div class="card-body">
+                    <div id="users-list"></div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
      * Get 404 page content
      */
     get404Page() {
@@ -1767,11 +1817,268 @@ const App = {
         );
     },
 
+    /**
+     * Initialize Consorcios
+     */
     initConsorcios() {
-        const container = document.getElementById('consorcios-list');
-        if (container) {
-            container.innerHTML = '<p class="text-muted">Módulo de consórcios em desenvolvimento...</p>';
+        this.loadConsorciosList();
+
+        const addBtn = document.getElementById('add-consorcio');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => this.showConsorcioForm());
         }
+    },
+
+    /**
+     * Load Consorcios list
+     */
+    loadConsorciosList() {
+        const container = document.getElementById('consorcios-list');
+        if (!container) return;
+
+        const consorcios = DataManager.getConsorcios();
+
+        if (consorcios.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="fas fa-users"></i></div>
+                    <p class="empty-state-description">Nenhum consórcio cadastrado</p>
+                </div>
+            `;
+            return;
+        }
+
+        const imoveisMap = {};
+        DataManager.getImoveis().forEach(im => {
+            imoveisMap[im.id] = im;
+        });
+
+        let html = '<div class="list-group">';
+
+        consorcios.forEach(consorcio => {
+            const imovel = imoveisMap[consorcio.imovelId];
+            const imovelNome = imovel ? imovel.nome : 'Não vinculado';
+
+            const percentualPago = consorcio.prazoTotal > 0
+                ? (consorcio.parcelasPagas / consorcio.prazoTotal) * 100
+                : 0;
+
+            const valorPago = consorcio.parcelasPagas * consorcio.valorParcela;
+            const saldoRestante = consorcio.valorCredito - valorPago;
+
+            const contemplado = consorcio.contemplado === true || consorcio.contemplado === 'true';
+
+            html += `
+                <div class="list-group-item">
+                    <div class="list-item-header">
+                        <div>
+                            <h4 class="list-item-title">
+                                <i class="fas fa-building"></i> ${imovelNome}
+                                ${contemplado ? '<span class="badge badge-success" style="margin-left: 0.5rem;">Contemplado</span>' : '<span class="badge badge-warning" style="margin-left: 0.5rem;">Em andamento</span>'}
+                            </h4>
+                            <p class="text-muted"><i class="fas fa-landmark"></i> ${Utils.escapeHtml(consorcio.administradora)}</p>
+                        </div>
+                        <div class="list-item-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="App.editConsorcio('${consorcio.id}')">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="App.deleteConsorcio('${consorcio.id}')">
+                                <i class="fas fa-trash"></i> Excluir
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="progress-container" style="margin: 1rem 0;">
+                        <div class="progress-info">
+                            <span>Progresso de Pagamento</span>
+                            <span><strong>${consorcio.parcelasPagas}/${consorcio.prazoTotal}</strong> parcelas</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: ${percentualPago}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                        <div class="metric-item">
+                            <div class="metric-label">Valor do Crédito</div>
+                            <div class="metric-value text-primary">${Utils.formatCurrency(consorcio.valorCredito)}</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Valor Pago</div>
+                            <div class="metric-value text-success">${Utils.formatCurrency(valorPago)}</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Saldo Restante</div>
+                            <div class="metric-value text-warning">${Utils.formatCurrency(saldoRestante)}</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Valor da Parcela</div>
+                            <div class="metric-value">${Utils.formatCurrency(consorcio.valorParcela)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+    },
+
+    /**
+     * Show Consorcio form
+     */
+    showConsorcioForm(consorcioId = null) {
+        const consorcios = DataManager.getConsorcios();
+        const consorcio = consorcioId ? consorcios.find(c => c.id === consorcioId) : null;
+        const isEdit = !!consorcio;
+
+        const imoveis = DataManager.getImoveis();
+        const imoveisOptions = imoveis.map(im =>
+            `<option value="${im.id}" ${consorcio && consorcio.imovelId === im.id ? 'selected' : ''}>${Utils.escapeHtml(im.nome)}</option>`
+        ).join('');
+
+        const formHtml = `
+            <form id="consorcio-form" class="form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">Imóvel</label>
+                        <select name="imovelId" class="form-select" required>
+                            <option value="">Selecione um imóvel</option>
+                            ${imoveisOptions}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">Administradora</label>
+                        <input type="text" name="administradora" class="form-input"
+                            value="${consorcio ? Utils.escapeHtml(consorcio.administradora) : ''}" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">Valor do Crédito</label>
+                        <input type="number" name="valorCredito" class="form-input" step="0.01" min="0"
+                            value="${consorcio ? consorcio.valorCredito : ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">Valor da Parcela</label>
+                        <input type="number" name="valorParcela" class="form-input" step="0.01" min="0"
+                            value="${consorcio ? consorcio.valorParcela : ''}" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">Prazo Total (meses)</label>
+                        <input type="number" name="prazoTotal" class="form-input" min="1"
+                            value="${consorcio ? consorcio.prazoTotal : ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">Parcelas Pagas</label>
+                        <input type="number" name="parcelasPagas" class="form-input" min="0"
+                            value="${consorcio ? consorcio.parcelasPagas : '0'}" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Data de Início</label>
+                        <input type="date" name="dataInicio" class="form-input"
+                            value="${consorcio ? consorcio.dataInicio : ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" name="contemplado" ${consorcio && consorcio.contemplado ? 'checked' : ''}>
+                            Contemplado
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Observações</label>
+                    <textarea name="observacoes" class="form-input" rows="3">${consorcio ? Utils.escapeHtml(consorcio.observacoes || '') : ''}</textarea>
+                </div>
+            </form>
+        `;
+
+        Utils.showModal(
+            isEdit ? 'Editar Consórcio' : 'Adicionar Consórcio',
+            formHtml,
+            [
+                { text: 'Cancelar', class: 'btn-secondary' },
+                {
+                    text: isEdit ? 'Salvar' : 'Adicionar',
+                    class: 'btn-primary',
+                    onClick: () => this.saveConsorcio(consorcioId)
+                }
+            ]
+        );
+    },
+
+    /**
+     * Save Consorcio
+     */
+    saveConsorcio(consorcioId) {
+        const formData = Forms.getFormData('consorcio-form');
+
+        if (!Forms.validateForm('consorcio-form')) {
+            Utils.showToast('Por favor, preencha todos os campos obrigatórios', 'error');
+            return;
+        }
+
+        const consorcioData = {
+            imovelId: formData.imovelId,
+            administradora: formData.administradora,
+            valorCredito: parseFloat(formData.valorCredito),
+            valorParcela: parseFloat(formData.valorParcela),
+            prazoTotal: parseInt(formData.prazoTotal),
+            parcelasPagas: parseInt(formData.parcelasPagas),
+            dataInicio: formData.dataInicio,
+            contemplado: formData.contemplado === 'on',
+            observacoes: formData.observacoes || ''
+        };
+
+        if (consorcioId) {
+            consorcioData.id = consorcioId;
+            DataManager.saveConsorcio(consorcioData);
+            Utils.showToast('Consórcio atualizado com sucesso!', 'success');
+        } else {
+            DataManager.saveConsorcio(consorcioData);
+            Utils.showToast('Consórcio adicionado com sucesso!', 'success');
+        }
+
+        Utils.closeModal();
+        this.loadConsorciosList();
+    },
+
+    /**
+     * Edit Consorcio
+     */
+    editConsorcio(id) {
+        this.showConsorcioForm(id);
+    },
+
+    /**
+     * Delete Consorcio
+     */
+    deleteConsorcio(id) {
+        const consorcios = DataManager.getConsorcios();
+        const consorcio = consorcios.find(c => c.id === id);
+
+        if (!consorcio) return;
+
+        Utils.showConfirm(
+            'Excluir Consórcio',
+            'Tem certeza que deseja excluir este consórcio?',
+            () => {
+                DataManager.deleteConsorcio(id);
+                Utils.showToast('Consórcio excluído com sucesso!', 'success');
+                this.loadConsorciosList();
+            }
+        );
     },
 
     initReformas() {
@@ -1866,6 +2173,293 @@ const App = {
         if (checklist) {
             checklist.innerHTML = '<p class="text-muted">Selecione um imóvel para visualizar o checklist</p>';
         }
+    },
+
+    /**
+     * Initialize Usuarios page
+     */
+    initUsuarios() {
+        // Check admin access
+        const currentUser = Auth.getCurrentUser();
+        if (!currentUser || currentUser.role !== 'admin') {
+            return;
+        }
+
+        this.loadUsersList();
+
+        const addBtn = document.getElementById('add-user');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => this.showUserForm());
+        }
+    },
+
+    /**
+     * Load Users list
+     */
+    loadUsersList() {
+        const container = document.getElementById('users-list');
+        if (!container) return;
+
+        const users = Auth.getUsers();
+        const currentUser = Auth.getCurrentUser();
+
+        if (users.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="fas fa-users"></i></div>
+                    <p class="empty-state-description">Nenhum usuário cadastrado</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '<div class="table-responsive"><table class="table"><thead><tr>';
+        html += '<th>Nome</th><th>Usuário</th><th>Role</th><th>Criado em</th><th>Ações</th>';
+        html += '</tr></thead><tbody>';
+
+        users.forEach(user => {
+            const isCurrentUser = currentUser && currentUser.id === user.id;
+            const createdAt = new Date(user.createdAt).toLocaleDateString('pt-BR');
+
+            html += `
+                <tr>
+                    <td>
+                        <strong>${Utils.escapeHtml(user.name)}</strong>
+                        ${isCurrentUser ? '<span class="badge badge-primary" style="margin-left: 0.5rem;">Você</span>' : ''}
+                    </td>
+                    <td>${Utils.escapeHtml(user.username)}</td>
+                    <td>
+                        <span class="badge ${user.role === 'admin' ? 'badge-success' : 'badge-info'}">
+                            ${user.role === 'admin' ? 'Administrador' : 'Usuário'}
+                        </span>
+                    </td>
+                    <td>${createdAt}</td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary" onclick="App.editUser('${user.id}')" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-warning" onclick="App.changeUserPassword('${user.id}')" title="Alterar Senha">
+                            <i class="fas fa-key"></i>
+                        </button>
+                        ${!isCurrentUser ? `
+                            <button class="btn btn-sm btn-danger" onclick="App.deleteUser('${user.id}')" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    },
+
+    /**
+     * Show User form
+     */
+    showUserForm(userId = null) {
+        const users = Auth.getUsers();
+        const user = userId ? users.find(u => u.id === userId) : null;
+        const isEdit = !!user;
+
+        const formHtml = `
+            <form id="user-form" class="form">
+                <div class="form-group">
+                    <label class="form-label required">Nome Completo</label>
+                    <input type="text" name="name" class="form-input"
+                        value="${user ? Utils.escapeHtml(user.name) : ''}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Nome de Usuário</label>
+                    <input type="text" name="username" class="form-input"
+                        value="${user ? Utils.escapeHtml(user.username) : ''}"
+                        ${isEdit ? 'readonly' : ''} required>
+                    ${isEdit ? '<small class="text-muted">O nome de usuário não pode ser alterado</small>' : ''}
+                </div>
+
+                ${!isEdit ? `
+                    <div class="form-group">
+                        <label class="form-label required">Senha</label>
+                        <input type="password" name="password" class="form-input" required minlength="6">
+                        <small class="text-muted">Mínimo de 6 caracteres</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label required">Confirmar Senha</label>
+                        <input type="password" name="confirmPassword" class="form-input" required minlength="6">
+                    </div>
+                ` : ''}
+
+                <div class="form-group">
+                    <label class="form-label required">Tipo de Usuário</label>
+                    <select name="role" class="form-select" required>
+                        <option value="user" ${user && user.role === 'user' ? 'selected' : ''}>Usuário</option>
+                        <option value="admin" ${user && user.role === 'admin' ? 'selected' : ''}>Administrador</option>
+                    </select>
+                </div>
+            </form>
+        `;
+
+        Utils.showModal(
+            isEdit ? 'Editar Usuário' : 'Adicionar Usuário',
+            formHtml,
+            [
+                { text: 'Cancelar', class: 'btn-secondary' },
+                {
+                    text: isEdit ? 'Salvar' : 'Adicionar',
+                    class: 'btn-primary',
+                    onClick: () => this.saveUser(userId)
+                }
+            ]
+        );
+    },
+
+    /**
+     * Save User
+     */
+    saveUser(userId) {
+        const formData = Forms.getFormData('user-form');
+
+        if (!Forms.validateForm('user-form')) {
+            Utils.showToast('Por favor, preencha todos os campos obrigatórios', 'error');
+            return;
+        }
+
+        if (userId) {
+            // Update existing user
+            const result = Auth.updateUser(userId, {
+                name: formData.name,
+                role: formData.role
+            });
+
+            if (result.success) {
+                Utils.showToast('Usuário atualizado com sucesso!', 'success');
+                Utils.closeModal();
+                this.loadUsersList();
+            } else {
+                Utils.showToast(result.message, 'error');
+            }
+        } else {
+            // Create new user
+            if (formData.password !== formData.confirmPassword) {
+                Utils.showToast('As senhas não coincidem', 'error');
+                return;
+            }
+
+            const result = Auth.createUser(formData.username, formData.password, formData.name, formData.role);
+
+            if (result.success) {
+                Utils.showToast('Usuário criado com sucesso!', 'success');
+                Utils.closeModal();
+                this.loadUsersList();
+            } else {
+                Utils.showToast(result.message, 'error');
+            }
+        }
+    },
+
+    /**
+     * Edit User
+     */
+    editUser(userId) {
+        this.showUserForm(userId);
+    },
+
+    /**
+     * Change User Password
+     */
+    changeUserPassword(userId) {
+        const users = Auth.getUsers();
+        const user = users.find(u => u.id === userId);
+
+        if (!user) return;
+
+        const formHtml = `
+            <form id="change-password-form" class="form">
+                <div class="alert alert-info">
+                    Alterando senha para: <strong>${Utils.escapeHtml(user.name)}</strong>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Nova Senha</label>
+                    <input type="password" name="newPassword" class="form-input" required minlength="6">
+                    <small class="text-muted">Mínimo de 6 caracteres</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Confirmar Nova Senha</label>
+                    <input type="password" name="confirmPassword" class="form-input" required minlength="6">
+                </div>
+            </form>
+        `;
+
+        Utils.showModal(
+            'Alterar Senha',
+            formHtml,
+            [
+                { text: 'Cancelar', class: 'btn-secondary' },
+                {
+                    text: 'Alterar Senha',
+                    class: 'btn-primary',
+                    onClick: () => {
+                        const formData = Forms.getFormData('change-password-form');
+
+                        if (!Forms.validateForm('change-password-form')) {
+                            Utils.showToast('Por favor, preencha todos os campos', 'error');
+                            return;
+                        }
+
+                        if (formData.newPassword !== formData.confirmPassword) {
+                            Utils.showToast('As senhas não coincidem', 'error');
+                            return;
+                        }
+
+                        // Update password directly
+                        const users = Auth.getUsers();
+                        const userIndex = users.findIndex(u => u.id === userId);
+
+                        if (userIndex !== -1) {
+                            users[userIndex].password = Auth.hashPassword(formData.newPassword);
+                            localStorage.setItem(Auth.USERS_KEY, JSON.stringify(users));
+
+                            Utils.showToast('Senha alterada com sucesso!', 'success');
+                            Utils.closeModal();
+                        } else {
+                            Utils.showToast('Erro ao alterar senha', 'error');
+                        }
+                    }
+                }
+            ]
+        );
+    },
+
+    /**
+     * Delete User
+     */
+    deleteUser(userId) {
+        const users = Auth.getUsers();
+        const user = users.find(u => u.id === userId);
+
+        if (!user) return;
+
+        // Don't allow deleting current user
+        const currentUser = Auth.getCurrentUser();
+        if (currentUser && currentUser.id === userId) {
+            Utils.showToast('Você não pode excluir seu próprio usuário', 'error');
+            return;
+        }
+
+        Utils.showConfirm(
+            'Excluir Usuário',
+            `Tem certeza que deseja excluir o usuário "${user.name}"?`,
+            () => {
+                Auth.deleteUser(userId);
+                Utils.showToast('Usuário excluído com sucesso!', 'success');
+                this.loadUsersList();
+            }
+        );
     },
 
     // ==========================================
