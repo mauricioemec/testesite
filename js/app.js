@@ -10,6 +10,9 @@ const App = {
      * Initialize application
      */
     init() {
+        // Initialize authentication
+        Auth.init();
+
         // Initialize data manager
         DataManager.init();
 
@@ -17,6 +20,15 @@ const App = {
         this.setupNavigation();
         this.setupHeader();
         this.setupTheme();
+
+        // Update UI for logged in user
+        this.updateAuthUI();
+
+        // Check authentication
+        if (!Auth.isAuthenticated()) {
+            this.navigateTo('login');
+            return;
+        }
 
         // Load initial page
         const hash = window.location.hash.slice(1) || 'dashboard';
@@ -121,6 +133,55 @@ const App = {
                 this.clearAllData();
             });
         }
+
+        // Logout
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                this.logout();
+            });
+        }
+    },
+
+    /**
+     * Update authentication UI
+     */
+    updateAuthUI() {
+        const user = Auth.getCurrentUser();
+        const userInfo = document.getElementById('user-info');
+        const userName = document.getElementById('user-name');
+        const logoutBtn = document.getElementById('logout-btn');
+        const sidebar = document.getElementById('sidebar');
+
+        if (user) {
+            if (userInfo) {
+                userInfo.style.display = 'flex';
+                userInfo.style.alignItems = 'center';
+                userInfo.style.gap = '0.5rem';
+            }
+            if (userName) userName.textContent = user.name;
+            if (logoutBtn) logoutBtn.style.display = 'block';
+            if (sidebar) sidebar.style.display = 'flex';
+        } else {
+            if (userInfo) userInfo.style.display = 'none';
+            if (logoutBtn) logoutBtn.style.display = 'none';
+            if (sidebar) sidebar.style.display = 'none';
+        }
+    },
+
+    /**
+     * Logout user
+     */
+    logout() {
+        Utils.showConfirm(
+            'Sair do Sistema',
+            'Deseja realmente sair?',
+            () => {
+                Auth.logout();
+                Utils.showToast('Logout realizado com sucesso!', 'success');
+                this.navigateTo('login');
+            }
+        );
     },
 
     /**
@@ -166,7 +227,16 @@ const App = {
      * @param {string} page - Page name
      */
     navigateTo(page) {
+        // Check authentication (except for login page)
+        if (page !== 'login' && !Auth.isAuthenticated()) {
+            window.location.hash = '#login';
+            return;
+        }
+
         this.currentPage = page;
+
+        // Update UI based on authentication
+        this.updateAuthUI();
 
         // Update active nav link
         document.querySelectorAll('.nav-link').forEach(link => {
@@ -195,6 +265,7 @@ const App = {
      */
     getPageContent(page) {
         const pages = {
+            'login': this.getLoginPage(),
             'dashboard': this.getDashboardPage(),
             'imoveis': this.getImoveisPage(),
             'financiamentos': this.getFinanciamentosPage(),
@@ -221,6 +292,7 @@ const App = {
      */
     initPage(page) {
         const initFunctions = {
+            'login': () => this.initLogin(),
             'dashboard': () => this.initDashboard(),
             'imoveis': () => this.initImoveis(),
             'financiamentos': () => this.initFinanciamentos(),
@@ -246,6 +318,47 @@ const App = {
     // ==========================================
     // PAGE CONTENT METHODS
     // ==========================================
+
+    /**
+     * Get Login page content
+     */
+    getLoginPage() {
+        return `
+            <div style="display: flex; align-items: center; justify-content: center; min-height: calc(100vh - var(--header-height)); background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card" style="max-width: 400px; width: 90%; margin: 2rem auto;">
+                    <div class="card-header" style="text-align: center; border-bottom: none; padding-bottom: 0;">
+                        <div style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <h2 style="margin: 0;">Sistema de Controle Financeiro</h2>
+                        <p class="text-muted" style="margin-top: 0.5rem;">Short-Term Rental</p>
+                    </div>
+                    <div class="card-body">
+                        <form id="login-form">
+                            <div class="form-group">
+                                <label class="form-label required">Usuário</label>
+                                <input type="text" name="username" class="form-input" placeholder="Digite seu usuário" required autofocus>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required">Senha</label>
+                                <input type="password" name="password" class="form-input" placeholder="Digite sua senha" required>
+                            </div>
+                            <div id="login-error" class="form-error" style="display: none;"></div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                                <i class="fas fa-sign-in-alt"></i> Entrar
+                            </button>
+                        </form>
+                        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); text-align: center;">
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 0;">
+                                <i class="fas fa-info-circle"></i> Credenciais padrão:<br>
+                                <strong>Usuário:</strong> admin | <strong>Senha:</strong> admin123
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
 
     /**
      * Get Dashboard page content
@@ -949,6 +1062,35 @@ const App = {
     // ==========================================
 
     /**
+     * Initialize Login
+     */
+    initLogin() {
+        const form = document.getElementById('login-form');
+        const errorDiv = document.getElementById('login-error');
+
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const formData = Forms.getFormData('login-form');
+                const result = Auth.login(formData.username, formData.password);
+
+                if (result.success) {
+                    Utils.showToast('Login realizado com sucesso!', 'success');
+                    this.updateAuthUI();
+                    this.navigateTo('dashboard');
+                } else {
+                    if (errorDiv) {
+                        errorDiv.textContent = result.message;
+                        errorDiv.style.display = 'block';
+                    }
+                    Utils.showToast(result.message, 'error');
+                }
+            });
+        }
+    },
+
+    /**
      * Initialize Dashboard
      */
     initDashboard() {
@@ -1321,10 +1463,308 @@ const App = {
      * Initialize other pages (simplified implementations)
      */
     initFinanciamentos() {
-        const container = document.getElementById('financiamentos-list');
-        if (container) {
-            container.innerHTML = '<p class="text-muted">Módulo de financiamentos em desenvolvimento...</p>';
+        this.loadFinanciamentosList();
+
+        // Add button
+        const addBtn = document.getElementById('add-financiamento');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => this.showFinanciamentoForm());
         }
+    },
+
+    /**
+     * Load financiamentos list
+     */
+    loadFinanciamentosList() {
+        const container = document.getElementById('financiamentos-list');
+        if (!container) return;
+
+        const financiamentos = DataManager.getFinanciamentos();
+
+        if (financiamentos.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="fas fa-landmark"></i></div>
+                    <h3 class="empty-state-title">Nenhum financiamento cadastrado</h3>
+                    <p class="empty-state-description">Clique em "Adicionar Financiamento" para começar</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = financiamentos.map(fin => {
+            const imovel = DataManager.getImovelById(fin.imovelId);
+            const imovelNome = imovel ? imovel.nome : 'Imóvel não encontrado';
+
+            const totalPago = (fin.parcelasPagas || 0) * (fin.valorParcela || 0);
+            const progresso = fin.prazoTotal > 0 ? (fin.parcelasPagas || 0) / fin.prazoTotal * 100 : 0;
+
+            return `
+                <div class="card mb-3" style="border-left: 4px solid var(--primary-color);">
+                    <div class="card-header flex-between">
+                        <div>
+                            <h4 style="margin: 0; color: var(--primary-color);">
+                                <i class="fas fa-home"></i> ${imovelNome}
+                            </h4>
+                            <p class="text-muted" style="margin: 0.25rem 0 0 0;">
+                                ${fin.banco || 'Banco não informado'} - ${fin.sistema || 'SAC'}
+                            </p>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="badge badge-info" style="font-size: 0.875rem; padding: 0.5rem 1rem;">
+                                ${fin.parcelasPagas || 0} / ${fin.prazoTotal || 0} parcelas
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="dashboard-grid" style="gap: 1rem; margin-bottom: 1rem;">
+                            <div class="col-3">
+                                <div class="metric-card">
+                                    <div class="metric-label">Valor Financiado</div>
+                                    <div class="metric-value" style="font-size: 1.25rem;">${Utils.formatCurrency(fin.valorFinanciado || 0)}</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="metric-card">
+                                    <div class="metric-label">Saldo Devedor</div>
+                                    <div class="metric-value" style="font-size: 1.25rem; color: var(--danger-color);">${Utils.formatCurrency(fin.saldoDevedor || 0)}</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="metric-card">
+                                    <div class="metric-label">Parcela Atual</div>
+                                    <div class="metric-value" style="font-size: 1.25rem;">${Utils.formatCurrency(fin.valorParcela || 0)}</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="metric-card">
+                                    <div class="metric-label">Taxa de Juros</div>
+                                    <div class="metric-value" style="font-size: 1.25rem;">${((fin.taxaJuros || 0) * 100).toFixed(2)}% a.a.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="progress-bar-container">
+                            <div class="progress-label">
+                                <span class="progress-label-text">Progresso de Pagamento</span>
+                                <span class="progress-label-value">${progresso.toFixed(1)}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progresso}%"></div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 0.75rem; margin-top: 1rem; justify-content: flex-end;">
+                            <button class="btn btn-sm btn-secondary" onclick="App.viewAmortizacao('${fin.id}')">
+                                <i class="fas fa-table"></i> Ver Tabela
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="App.editFinanciamento('${fin.id}')">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="App.deleteFinanciamento('${fin.id}')">
+                                <i class="fas fa-trash"></i> Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    /**
+     * Show financiamento form
+     */
+    showFinanciamentoForm(finId = null) {
+        const fin = finId ? DataManager.getFinanciamentoById(finId) : {};
+        const isEdit = !!finId;
+        const imoveis = DataManager.getImoveis();
+
+        const formHtml = `
+            <div class="form-group">
+                <label class="form-label required">Imóvel</label>
+                <select name="imovelId" class="form-select" required>
+                    <option value="">Selecione um imóvel</option>
+                    ${imoveis.map(i => `
+                        <option value="${i.id}" ${fin.imovelId === i.id ? 'selected' : ''}>${i.nome}</option>
+                    `).join('')}
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">Banco/Instituição</label>
+                    <input type="text" name="banco" class="form-input" value="${fin.banco || ''}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Sistema</label>
+                    <select name="sistema" class="form-select" required>
+                        <option value="SAC" ${fin.sistema === 'SAC' ? 'selected' : ''}>SAC</option>
+                        <option value="PRICE" ${fin.sistema === 'PRICE' ? 'selected' : ''}>PRICE</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">Valor Financiado</label>
+                    <input type="number" name="valorFinanciado" class="form-input" value="${fin.valorFinanciado || ''}" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Taxa de Juros Anual (%)</label>
+                    <input type="number" name="taxaJuros" class="form-input" value="${(fin.taxaJuros || 0) * 100}" min="0" max="100" step="0.01" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">Prazo Total (meses)</label>
+                    <input type="number" name="prazoTotal" class="form-input" value="${fin.prazoTotal || ''}" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Parcelas Já Pagas</label>
+                    <input type="number" name="parcelasPagas" class="form-input" value="${fin.parcelasPagas || 0}" min="0">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label required">Data de Início</label>
+                <input type="date" name="dataInicio" class="form-input" value="${Utils.formatDateInput(fin.dataInicio || new Date())}" required>
+            </div>
+        `;
+
+        Utils.showModal(
+            isEdit ? 'Editar Financiamento' : 'Adicionar Financiamento',
+            `<form id="financiamento-form">${formHtml}</form>`,
+            [
+                { text: 'Cancelar', class: 'btn-secondary' },
+                {
+                    text: 'Salvar',
+                    class: 'btn-primary',
+                    onClick: () => this.saveFinanciamento(finId)
+                }
+            ]
+        );
+    },
+
+    /**
+     * Save financiamento
+     */
+    saveFinanciamento(finId) {
+        const formData = Forms.getFormData('financiamento-form');
+
+        const valorFinanciado = parseFloat(formData.valorFinanciado) || 0;
+        const taxaJuros = parseFloat(formData.taxaJuros) / 100 || 0;
+        const prazoTotal = parseInt(formData.prazoTotal) || 0;
+        const parcelasPagas = parseInt(formData.parcelasPagas) || 0;
+        const sistema = formData.sistema;
+
+        // Calculate current values
+        let valorParcela = 0;
+        let saldoDevedor = 0;
+
+        if (sistema === 'PRICE') {
+            valorParcela = Calculations.calculatePRICEPayment(valorFinanciado, taxaJuros, prazoTotal);
+            saldoDevedor = Calculations.getPRICERemainingBalance(valorFinanciado, taxaJuros, prazoTotal, parcelasPagas);
+        } else {
+            saldoDevedor = Calculations.getSACRemainingBalance(valorFinanciado, prazoTotal, parcelasPagas);
+            const taxaMensal = taxaJuros / 12;
+            const amortizacao = valorFinanciado / prazoTotal;
+            valorParcela = amortizacao + (saldoDevedor * taxaMensal);
+        }
+
+        const financiamento = {
+            ...formData,
+            id: finId,
+            valorFinanciado,
+            taxaJuros,
+            prazoTotal,
+            parcelasPagas,
+            valorParcela,
+            saldoDevedor
+        };
+
+        DataManager.saveFinanciamento(financiamento);
+        Utils.showToast('Financiamento salvo com sucesso!', 'success');
+        this.loadFinanciamentosList();
+    },
+
+    /**
+     * Edit financiamento
+     */
+    editFinanciamento(id) {
+        this.showFinanciamentoForm(id);
+    },
+
+    /**
+     * Delete financiamento
+     */
+    deleteFinanciamento(id) {
+        const fin = DataManager.getFinanciamentoById(id);
+        const imovel = DataManager.getImovelById(fin.imovelId);
+        Utils.showConfirm(
+            'Excluir Financiamento',
+            `Tem certeza que deseja excluir o financiamento do imóvel "${imovel ? imovel.nome : 'N/A'}"?`,
+            () => {
+                DataManager.deleteFinanciamento(id);
+                Utils.showToast('Financiamento excluído com sucesso!', 'success');
+                this.loadFinanciamentosList();
+            }
+        );
+    },
+
+    /**
+     * View amortization table
+     */
+    viewAmortizacao(id) {
+        const fin = DataManager.getFinanciamentoById(id);
+        if (!fin) return;
+
+        const imovel = DataManager.getImovelById(fin.imovelId);
+
+        let tabela = [];
+        if (fin.sistema === 'PRICE') {
+            tabela = Calculations.generatePRICETable(fin.valorFinanciado, fin.taxaJuros, fin.prazoTotal, new Date(fin.dataInicio));
+        } else {
+            tabela = Calculations.generateSACTable(fin.valorFinanciado, fin.taxaJuros, fin.prazoTotal, new Date(fin.dataInicio));
+        }
+
+        const tabelaHtml = `
+            <div style="max-height: 500px; overflow-y: auto;">
+                <h4>${imovel ? imovel.nome : 'Imóvel'} - Sistema ${fin.sistema}</h4>
+                <table class="table-container" style="width: 100%; font-size: 0.875rem;">
+                    <thead>
+                        <tr>
+                            <th>Nº</th>
+                            <th>Data</th>
+                            <th>Parcela</th>
+                            <th>Juros</th>
+                            <th>Amortização</th>
+                            <th>Saldo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tabela.map(row => `
+                            <tr class="${row.number <= fin.parcelasPagas ? 'text-success' : ''}">
+                                <td>${row.number}</td>
+                                <td>${Utils.formatDate(row.date)}</td>
+                                <td>${Utils.formatCurrency(row.payment)}</td>
+                                <td>${Utils.formatCurrency(row.interest)}</td>
+                                <td>${Utils.formatCurrency(row.amortization)}</td>
+                                <td>${Utils.formatCurrency(row.balance)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        Utils.showModal(
+            'Tabela de Amortização',
+            tabelaHtml,
+            [
+                { text: 'Fechar', class: 'btn-secondary' }
+            ]
+        );
     },
 
     initConsorcios() {
