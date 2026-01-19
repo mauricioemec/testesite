@@ -1,0 +1,269 @@
+/* ==========================================
+   Print Styles
+   ========================================== */
+
+@media print {
+    /* Reset colors for print */
+    * {
+        color: #000 !important;
+        background: #fff !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+
+    /* Hide non-essential elements */
+    .header,
+    .sidebar,
+    .footer,
+    .btn,
+    .btn-icon,
+    .menu-toggle,
+    .toast-container,
+    .modal-container,
+    .help-panel,
+    .form-group button,
+    .table-actions,
+    .quick-actions,
+    .sidebar-footer,
+    #import-file-input {
+        display: none !important;
+    }
+
+    /* Adjust main content */
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+
+    /* Page setup */
+    @page {
+        size: A4;
+        margin: 2cm;
+    }
+
+    body {
+        font-size: 12pt;
+        line-height: 1.5;
+    }
+
+    h1 {
+        font-size: 24pt;
+        page-break-after: avoid;
+    }
+
+    h2 {
+        font-size: 18pt;
+        page-break-after: avoid;
+    }
+
+    h3 {
+        font-size: 14pt;
+        page-break-after: avoid;
+    }
+
+    /* Avoid breaking inside elements */
+    .card,
+    .kpi-card,
+    .metric-card,
+    .property-card,
+    .table-container,
+    .chart-container,
+    .activity-item {
+        page-break-inside: avoid;
+    }
+
+    /* Tables */
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        border: 1px solid #000;
+    }
+
+    th,
+    td {
+        border: 1px solid #000;
+        padding: 8px;
+        text-align: left;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    tbody {
+        display: table-row-group;
+    }
+
+    tr {
+        page-break-inside: avoid;
+    }
+
+    /* Cards */
+    .card {
+        border: 1px solid #000;
+        margin-bottom: 20px;
+        padding: 15px;
+    }
+
+    .card-title {
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    /* Hide charts (can't print canvas) */
+    .chart-container canvas {
+        display: none;
+    }
+
+    .chart-container::after {
+        content: '[Gráfico não disponível na impressão]';
+        display: block;
+        text-align: center;
+        padding: 20px;
+        font-style: italic;
+        color: #666 !important;
+    }
+
+    /* KPI Cards */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+
+    .kpi-card {
+        border: 2px solid #000;
+        padding: 15px;
+    }
+
+    .kpi-value {
+        font-size: 18pt;
+        font-weight: bold;
+    }
+
+    .kpi-label {
+        font-size: 10pt;
+    }
+
+    /* Print header */
+    .main-content::before {
+        content: 'Sistema de Controle Financeiro STR - Relatório';
+        display: block;
+        text-align: center;
+        font-size: 18pt;
+        font-weight: bold;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #000;
+    }
+
+    /* Page numbers */
+    .main-content::after {
+        counter-increment: page;
+        content: 'Página ' counter(page);
+        display: block;
+        text-align: right;
+        font-size: 9pt;
+        margin-top: 20px;
+    }
+
+    /* Links */
+    a[href]::after {
+        content: ' (' attr(href) ')';
+        font-size: 9pt;
+        font-style: italic;
+    }
+
+    a[href^='#']::after {
+        content: '';
+    }
+
+    /* Ensure images fit */
+    img {
+        max-width: 100% !important;
+        page-break-inside: avoid;
+    }
+
+    /* Progress bars */
+    .progress-bar {
+        border: 1px solid #000;
+        height: 10px;
+    }
+
+    .progress-fill {
+        background: #000 !important;
+    }
+
+    /* Badges */
+    .badge {
+        border: 1px solid #000;
+        padding: 2px 6px;
+    }
+
+    /* Financial summary */
+    .financial-summary {
+        border: 2px solid #000;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    .financial-value {
+        font-size: 16pt;
+        font-weight: bold;
+    }
+
+    /* Activity list */
+    .activity-item {
+        border-bottom: 1px solid #000;
+        padding: 10px 0;
+    }
+
+    /* Alerts */
+    .alert {
+        border: 2px solid #000;
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+
+    .alert-title {
+        font-weight: bold;
+    }
+
+    /* Force black text on all elements */
+    *,
+    *::before,
+    *::after {
+        color: #000 !important;
+        background: transparent !important;
+    }
+
+    /* Except for specific backgrounds */
+    .card,
+    .kpi-card,
+    table,
+    .financial-summary {
+        background: #fff !important;
+    }
+
+    /* Borders for structure */
+    .metric-card,
+    .property-card {
+        border: 1px solid #000 !important;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+
+    /* Stats visibility */
+    .stats-item {
+        border-bottom: 1px solid #ccc;
+    }
+
+    /* Form elements (for reference) */
+    .form-input,
+    .form-select,
+    .form-textarea {
+        border: 1px solid #000;
+        background: #fff !important;
+    }
+}
