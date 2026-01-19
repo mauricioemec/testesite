@@ -1,0 +1,571 @@
+/* ==========================================
+   Dashboard Specific Styles
+   ========================================== */
+
+/* Chart Containers */
+.chart-container {
+    position: relative;
+    height: 350px;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background-color: var(--bg-primary);
+    border-radius: var(--radius-lg);
+}
+
+.chart-small {
+    height: 250px;
+}
+
+.chart-large {
+    height: 450px;
+}
+
+/* Dashboard Grid Layouts */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.col-12 {
+    grid-column: span 12;
+}
+
+.col-6 {
+    grid-column: span 6;
+}
+
+.col-4 {
+    grid-column: span 4;
+}
+
+.col-3 {
+    grid-column: span 3;
+}
+
+/* Metrics Cards */
+.metrics-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.metric-card {
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-fast);
+}
+
+.metric-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.metric-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.metric-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.metric-icon.primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+}
+
+.metric-icon.success {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.metric-icon.warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.metric-icon.danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.metric-icon.info {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.metric-trend {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.metric-trend.up {
+    color: var(--success-color);
+}
+
+.metric-trend.down {
+    color: var(--danger-color);
+}
+
+.metric-trend i {
+    font-size: 1rem;
+}
+
+.metric-body {
+    margin-bottom: 0.75rem;
+}
+
+.metric-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.metric-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.metric-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.metric-compare {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Property Performance Cards */
+.property-performance {
+    display: grid;
+    gap: 1rem;
+}
+
+.property-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    transition: all var(--transition-fast);
+}
+
+.property-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.property-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.property-info h4 {
+    margin: 0 0 0.25rem 0;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.property-info p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.property-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.property-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.property-metric {
+    text-align: center;
+}
+
+.property-metric-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.property-metric-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Progress Bars */
+.progress-bar-container {
+    margin: 1rem 0;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.progress-label-text {
+    color: var(--text-secondary);
+}
+
+.progress-label-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.progress-bar {
+    height: 8px;
+    background-color: var(--bg-tertiary);
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+    border-radius: 9999px;
+    transition: width 0.5s ease;
+}
+
+.progress-fill.success {
+    background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.progress-fill.warning {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.progress-fill.danger {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+/* Stats List */
+.stats-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.stats-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stats-item:last-child {
+    border-bottom: none;
+}
+
+.stats-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.stats-value {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+/* Financial Summary */
+.financial-summary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.financial-summary h2 {
+    color: white;
+    margin-bottom: 1.5rem;
+}
+
+.financial-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.financial-item {
+    text-align: center;
+}
+
+.financial-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    line-height: 1;
+}
+
+.financial-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    background: var(--bg-primary);
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: center;
+}
+
+.quick-action-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background-color: rgba(79, 70, 229, 0.05);
+}
+
+.quick-action-icon {
+    font-size: 2rem;
+}
+
+.quick-action-text {
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+/* Recent Activity */
+.activity-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.activity-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.activity-icon.revenue {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.activity-icon.expense {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.activity-icon.property {
+    background-color: rgba(79, 70, 229, 0.1);
+    color: var(--primary-color);
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-title {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.activity-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.activity-value {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+    text-align: right;
+}
+
+/* Alerts & Notifications */
+.alert {
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: 1rem;
+    border-left: 4px solid;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.alert-info {
+    background-color: #dbeafe;
+    border-left-color: #3b82f6;
+    color: #1e40af;
+}
+
+.alert-success {
+    background-color: #d1fae5;
+    border-left-color: #10b981;
+    color: #065f46;
+}
+
+.alert-warning {
+    background-color: #fef3c7;
+    border-left-color: #f59e0b;
+    color: #92400e;
+}
+
+.alert-danger {
+    background-color: #fee2e2;
+    border-left-color: #ef4444;
+    color: #991b1b;
+}
+
+.alert-icon {
+    font-size: 1.25rem;
+}
+
+.alert-content {
+    flex: 1;
+}
+
+.alert-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.alert-message {
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+/* Empty States */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    color: var(--text-tertiary);
+    margin-bottom: 1rem;
+}
+
+.empty-state-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state-description {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+/* Responsive Dashboard */
+@media (max-width: 1024px) {
+    .col-6, .col-4, .col-3 {
+        grid-column: span 12;
+    }
+
+    .dashboard-grid {
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .chart-container {
+        height: 300px;
+    }
+
+    .chart-small {
+        height: 250px;
+    }
+
+    .chart-large {
+        height: 350px;
+    }
+
+    .property-metrics {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .property-metric {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: left;
+    }
+
+    .financial-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .financial-item {
+        text-align: left;
+    }
+}
