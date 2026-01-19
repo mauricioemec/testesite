@@ -42,6 +42,10 @@
             </h1>
         </div>
         <div class="header-right">
+            <span id="user-info" class="user-info" style="margin-right: 1rem; display: none;">
+                <i class="fas fa-user-circle"></i>
+                <span id="user-name"></span>
+            </span>
             <button id="theme-toggle" class="btn-icon" title="Alternar tema">
                 <i class="fas fa-moon"></i>
             </button>
@@ -53,6 +57,9 @@
             </button>
             <button id="help-toggle" class="btn-icon" title="Ajuda">
                 <i class="fas fa-question-circle"></i>
+            </button>
+            <button id="logout-btn" class="btn-icon" title="Sair" style="display: none;">
+                <i class="fas fa-sign-out-alt"></i>
             </button>
         </div>
     </header>
@@ -253,6 +260,7 @@
 
     <!-- JavaScript -->
     <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
     <script src="js/data-manager.js"></script>
     <script src="js/calculations.js"></script>
     <script src="js/forms.js"></script>
