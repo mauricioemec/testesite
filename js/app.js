@@ -327,7 +327,7 @@ const App = {
         };
 
         if (initFunctions[page]) {
-            setTimeout(() => initFunctions[page](), 0);
+            setTimeout(() => initFunctions[page](), 100);
         }
     },
 
@@ -1251,33 +1251,106 @@ const App = {
      * Initialize Login
      */
     initLogin() {
-        const form = document.getElementById('login-form');
-        const errorDiv = document.getElementById('login-error');
+        console.log('=== Initializing Login Page ===');
 
-        if (form) {
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
+        setTimeout(() => {
+            const form = document.getElementById('login-form');
+            const errorDiv = document.getElementById('login-error');
+            const submitBtn = document.querySelector('#login-form button[type="submit"]');
 
-                const formData = Forms.getFormData('login-form');
+            console.log('Login form found:', !!form);
+            console.log('Submit button found:', !!submitBtn);
+            console.log('Auth object:', typeof Auth);
+            console.log('Auth.loginWithEmail:', typeof Auth.loginWithEmail);
 
-                // Try login with email support first, fallback to username only
-                let result = Auth.loginWithEmail
-                    ? Auth.loginWithEmail(formData.username, formData.password)
-                    : Auth.login(formData.username, formData.password);
+            if (!form) {
+                console.error('✗ Login form NOT FOUND in DOM!');
+                return;
+            }
 
-                if (result.success) {
-                    Utils.showToast('Login realizado com sucesso!', 'success');
-                    this.updateAuthUI();
-                    this.navigateTo('dashboard');
-                } else {
-                    if (errorDiv) {
-                        errorDiv.textContent = result.message;
-                        errorDiv.style.display = 'block';
-                    }
-                    Utils.showToast(result.message, 'error');
+            // Define login handler
+            const handleLogin = (e) => {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
                 }
+
+                console.log('🔐 Login handler triggered!');
+
+                try {
+                    // Get form values directly
+                    const usernameInput = document.querySelector('#login-form input[name="username"]');
+                    const passwordInput = document.querySelector('#login-form input[name="password"]');
+
+                    if (!usernameInput || !passwordInput) {
+                        console.error('Form inputs not found!');
+                        Utils.showToast('Erro no formulário', 'error');
+                        return;
+                    }
+
+                    const username = usernameInput.value.trim();
+                    const password = passwordInput.value;
+
+                    console.log('Login attempt:', { username, hasPassword: !!password });
+
+                    if (!username || !password) {
+                        const msg = 'Por favor, preencha todos os campos';
+                        if (errorDiv) {
+                            errorDiv.textContent = msg;
+                            errorDiv.style.display = 'block';
+                        }
+                        Utils.showToast(msg, 'error');
+                        return;
+                    }
+
+                    // Attempt login
+                    const result = Auth.loginWithEmail(username, password);
+                    console.log('Login result:', result);
+
+                    if (result.success) {
+                        console.log('✓ Login successful!');
+                        if (errorDiv) errorDiv.style.display = 'none';
+                        Utils.showToast('Login realizado com sucesso!', 'success');
+                        this.updateAuthUI();
+                        setTimeout(() => this.navigateTo('dashboard'), 500);
+                    } else {
+                        console.log('✗ Login failed:', result.message);
+                        if (errorDiv) {
+                            errorDiv.textContent = result.message;
+                            errorDiv.style.display = 'block';
+                        }
+                        Utils.showToast(result.message, 'error');
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    Utils.showToast('Erro ao fazer login: ' + error.message, 'error');
+                }
+            };
+
+            // Method 1: Form submit event
+            form.onsubmit = handleLogin;
+
+            // Method 2: Button click event (backup)
+            if (submitBtn) {
+                submitBtn.onclick = (e) => {
+                    e.preventDefault();
+                    handleLogin(e);
+                };
+            }
+
+            // Method 3: Enter key on inputs
+            const inputs = form.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleLogin(e);
+                    }
+                });
             });
-        }
+
+            console.log('✓ Login handlers attached (3 methods)');
+        }, 200);
     },
 
     /**
