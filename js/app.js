@@ -234,8 +234,11 @@ const App = {
      * @param {string} page - Page name
      */
     navigateTo(page) {
-        // Check authentication (except for login page)
-        if (page !== 'login' && !Auth.isAuthenticated()) {
+        // Public pages that don't require authentication
+        const publicPages = ['login', 'register', 'verify-email'];
+
+        // Check authentication (except for public pages)
+        if (!publicPages.includes(page) && !Auth.isAuthenticated()) {
             window.location.hash = '#login';
             return;
         }
@@ -273,6 +276,8 @@ const App = {
     getPageContent(page) {
         const pages = {
             'login': this.getLoginPage(),
+            'register': this.getRegisterPage(),
+            'verify-email': this.getVerifyEmailPage(),
             'dashboard': this.getDashboardPage(),
             'imoveis': this.getImoveisPage(),
             'financiamentos': this.getFinanciamentosPage(),
@@ -301,6 +306,8 @@ const App = {
     initPage(page) {
         const initFunctions = {
             'login': () => this.initLogin(),
+            'register': () => this.initRegister(),
+            'verify-email': () => this.initVerifyEmail(),
             'dashboard': () => this.initDashboard(),
             'imoveis': () => this.initImoveis(),
             'financiamentos': () => this.initFinanciamentos(),
@@ -345,8 +352,8 @@ const App = {
                     <div class="card-body">
                         <form id="login-form">
                             <div class="form-group">
-                                <label class="form-label required">Usuário</label>
-                                <input type="text" name="username" class="form-input" placeholder="Digite seu usuário" required autofocus>
+                                <label class="form-label required">Usuário ou E-mail</label>
+                                <input type="text" name="username" class="form-input" placeholder="Digite seu usuário ou e-mail" required autofocus>
                             </div>
                             <div class="form-group">
                                 <label class="form-label required">Senha</label>
@@ -358,9 +365,138 @@ const App = {
                             </button>
                         </form>
                         <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); text-align: center;">
+                            <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.75rem;">
+                                Não tem uma conta?
+                                <a href="#register" style="color: var(--primary-color); font-weight: 600; text-decoration: none;">
+                                    Criar conta
+                                </a>
+                            </p>
                             <p class="text-muted" style="font-size: 0.875rem; margin: 0;">
                                 <i class="fas fa-info-circle"></i> Credenciais padrão:<br>
                                 <strong>Usuário:</strong> admin | <strong>Senha:</strong> admin123
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Get Register page content
+     */
+    getRegisterPage() {
+        return `
+            <div style="display: flex; align-items: center; justify-content: center; min-height: calc(100vh - var(--header-height)); background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card" style="max-width: 500px; width: 90%; margin: 2rem auto;">
+                    <div class="card-header" style="text-align: center; border-bottom: none; padding-bottom: 0;">
+                        <div style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <h2 style="margin: 0;">Criar Nova Conta</h2>
+                        <p class="text-muted" style="margin-top: 0.5rem;">Preencha os dados abaixo para se cadastrar</p>
+                    </div>
+                    <div class="card-body">
+                        <form id="register-form">
+                            <div class="form-group">
+                                <label class="form-label required">Nome Completo</label>
+                                <input type="text" name="name" class="form-input" placeholder="Digite seu nome completo" required autofocus>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required">E-mail</label>
+                                <input type="email" name="email" class="form-input" placeholder="seu@email.com" required>
+                                <small class="text-muted">Enviaremos um código de verificação para este e-mail</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required">Senha</label>
+                                <input type="password" name="password" class="form-input" placeholder="Mínimo 6 caracteres" required minlength="6">
+                                <small class="text-muted">Deve conter letras maiúsculas e números</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required">Confirmar Senha</label>
+                                <input type="password" name="confirmPassword" class="form-input" placeholder="Digite a senha novamente" required>
+                            </div>
+                            <div id="register-error" class="form-error" style="display: none;"></div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                                <i class="fas fa-user-plus"></i> Criar Conta
+                            </button>
+                        </form>
+                        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); text-align: center;">
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 0;">
+                                Já tem uma conta?
+                                <a href="#login" style="color: var(--primary-color); font-weight: 600; text-decoration: none;">
+                                    Fazer login
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Get Verify Email page content
+     */
+    getVerifyEmailPage() {
+        const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+        const email = urlParams.get('email') || '';
+
+        return `
+            <div style="display: flex; align-items: center; justify-content: center; min-height: calc(100vh - var(--header-height)); background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card" style="max-width: 450px; width: 90%; margin: 2rem auto;">
+                    <div class="card-header" style="text-align: center; border-bottom: none; padding-bottom: 0;">
+                        <div style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;">
+                            <i class="fas fa-envelope-open-text"></i>
+                        </div>
+                        <h2 style="margin: 0;">Verificar E-mail</h2>
+                        <p class="text-muted" style="margin-top: 0.5rem;">Digite o código enviado para seu e-mail</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Código enviado para:</strong><br>
+                            ${email}
+                        </div>
+
+                        <div class="alert alert-warning" style="margin-bottom: 1.5rem; font-size: 0.875rem;">
+                            <i class="fas fa-desktop"></i>
+                            <strong>Modo Desenvolvimento:</strong><br>
+                            O código foi exibido no console do navegador (F12). Em produção, será enviado por e-mail.
+                        </div>
+
+                        <form id="verify-form">
+                            <input type="hidden" name="email" value="${email}">
+                            <div class="form-group">
+                                <label class="form-label required">Código de Verificação</label>
+                                <input
+                                    type="text"
+                                    name="code"
+                                    class="form-input"
+                                    placeholder="000000"
+                                    required
+                                    autofocus
+                                    maxlength="6"
+                                    pattern="[0-9]{6}"
+                                    style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem; font-weight: bold;">
+                                <small class="text-muted">Código de 6 dígitos válido por 15 minutos</small>
+                            </div>
+                            <div id="verify-error" class="form-error" style="display: none;"></div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                                <i class="fas fa-check-circle"></i> Verificar E-mail
+                            </button>
+                        </form>
+                        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); text-align: center;">
+                            <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.75rem;">
+                                Não recebeu o código?
+                                <button id="resend-code-btn" class="btn-link" style="color: var(--primary-color); font-weight: 600; background: none; border: none; cursor: pointer; padding: 0;">
+                                    Reenviar código
+                                </button>
+                            </p>
+                            <p class="text-muted" style="font-size: 0.875rem; margin: 0;">
+                                <a href="#login" style="color: var(--text-muted); text-decoration: none;">
+                                    <i class="fas fa-arrow-left"></i> Voltar ao login
+                                </a>
                             </p>
                         </div>
                     </div>
@@ -1123,7 +1259,11 @@ const App = {
                 e.preventDefault();
 
                 const formData = Forms.getFormData('login-form');
-                const result = Auth.login(formData.username, formData.password);
+
+                // Try login with email support first, fallback to username only
+                let result = Auth.loginWithEmail
+                    ? Auth.loginWithEmail(formData.username, formData.password)
+                    : Auth.login(formData.username, formData.password);
 
                 if (result.success) {
                     Utils.showToast('Login realizado com sucesso!', 'success');
@@ -1134,6 +1274,103 @@ const App = {
                         errorDiv.textContent = result.message;
                         errorDiv.style.display = 'block';
                     }
+                    Utils.showToast(result.message, 'error');
+                }
+            });
+        }
+    },
+
+    /**
+     * Initialize Register
+     */
+    initRegister() {
+        const form = document.getElementById('register-form');
+        const errorDiv = document.getElementById('register-error');
+
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const formData = Forms.getFormData('register-form');
+
+                // Validate passwords match
+                if (formData.password !== formData.confirmPassword) {
+                    if (errorDiv) {
+                        errorDiv.textContent = 'As senhas não coincidem';
+                        errorDiv.style.display = 'block';
+                    }
+                    Utils.showToast('As senhas não coincidem', 'error');
+                    return;
+                }
+
+                // Register user
+                const result = Auth.registerUser(formData.email, formData.password, formData.name);
+
+                if (result.success) {
+                    Utils.showToast(result.message, 'success');
+                    // Navigate to verification page
+                    window.location.hash = `#verify-email?email=${encodeURIComponent(formData.email)}`;
+                } else {
+                    if (errorDiv) {
+                        errorDiv.textContent = result.message;
+                        errorDiv.style.display = 'block';
+                    }
+                    Utils.showToast(result.message, 'error');
+                }
+            });
+        }
+    },
+
+    /**
+     * Initialize Verify Email
+     */
+    initVerifyEmail() {
+        const form = document.getElementById('verify-form');
+        const errorDiv = document.getElementById('verify-error');
+        const resendBtn = document.getElementById('resend-code-btn');
+
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const formData = Forms.getFormData('verify-form');
+
+                // Verify code
+                const result = Auth.verifyCode(formData.email, formData.code);
+
+                if (result.success) {
+                    Utils.showToast(result.message, 'success');
+                    Utils.showToast('Redirecionando para o login...', 'info');
+
+                    // Redirect to login after 2 seconds
+                    setTimeout(() => {
+                        window.location.hash = '#login';
+                    }, 2000);
+                } else {
+                    if (errorDiv) {
+                        errorDiv.textContent = result.message;
+                        errorDiv.style.display = 'block';
+                    }
+                    Utils.showToast(result.message, 'error');
+                }
+            });
+        }
+
+        if (resendBtn) {
+            resendBtn.addEventListener('click', () => {
+                const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+                const email = urlParams.get('email');
+
+                if (!email) {
+                    Utils.showToast('E-mail não encontrado', 'error');
+                    return;
+                }
+
+                const result = Auth.resendVerificationCode(email);
+
+                if (result.success) {
+                    Utils.showToast(result.message, 'success');
+                } else {
                     Utils.showToast(result.message, 'error');
                 }
             });
