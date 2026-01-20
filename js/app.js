@@ -1823,10 +1823,33 @@ const App = {
     initConsorcios() {
         this.loadConsorciosList();
 
-        const addBtn = document.getElementById('add-consorcio');
-        if (addBtn) {
-            addBtn.addEventListener('click', () => this.showConsorcioForm());
+        // Use timeout to ensure DOM is ready
+        setTimeout(() => {
+            const addBtn = document.getElementById('add-consorcio');
+            if (addBtn) {
+                // Remove any existing listeners
+                addBtn.replaceWith(addBtn.cloneNode(true));
+                const newAddBtn = document.getElementById('add-consorcio');
+                newAddBtn.addEventListener('click', () => {
+                    this.showConsorcioForm();
+                });
+            }
+        }, 100);
+    },
+
+    /**
+     * Calculate total paid with annual adjustments
+     */
+    calculateConsorcioValorPago(consorcio) {
+        const taxaReajusteMensal = consorcio.taxaReajuste ? Math.pow(1 + (consorcio.taxaReajuste / 100), 1/12) - 1 : 0;
+        let valorPagoTotal = 0;
+
+        for (let i = 0; i < consorcio.parcelasPagas; i++) {
+            const valorParcelaAjustada = consorcio.valorParcela * Math.pow(1 + taxaReajusteMensal, i);
+            valorPagoTotal += valorParcelaAjustada;
         }
+
+        return valorPagoTotal;
     },
 
     /**
@@ -1863,8 +1886,15 @@ const App = {
                 ? (consorcio.parcelasPagas / consorcio.prazoTotal) * 100
                 : 0;
 
-            const valorPago = consorcio.parcelasPagas * consorcio.valorParcela;
+            // Calculate with annual adjustment
+            const valorPago = this.calculateConsorcioValorPago(consorcio);
+            const valorPremio = consorcio.valorPremio || 0;
+            const valorTotalInvestido = valorPago + valorPremio;
             const saldoRestante = consorcio.valorCredito - valorPago;
+
+            // Calculate current installment value
+            const taxaReajusteMensal = consorcio.taxaReajuste ? Math.pow(1 + (consorcio.taxaReajuste / 100), 1/12) - 1 : 0;
+            const valorParcelaAtual = consorcio.valorParcela * Math.pow(1 + taxaReajusteMensal, consorcio.parcelasPagas);
 
             const contemplado = consorcio.contemplado === true || consorcio.contemplado === 'true';
 
@@ -1904,16 +1934,27 @@ const App = {
                             <div class="metric-value text-primary">${Utils.formatCurrency(consorcio.valorCredito)}</div>
                         </div>
                         <div class="metric-item">
-                            <div class="metric-label">Valor Pago</div>
+                            <div class="metric-label">Valor Pago (Parcelas)</div>
                             <div class="metric-value text-success">${Utils.formatCurrency(valorPago)}</div>
                         </div>
+                        ${valorPremio > 0 ? `
+                        <div class="metric-item">
+                            <div class="metric-label">Prêmio/Lance</div>
+                            <div class="metric-value text-info">${Utils.formatCurrency(valorPremio)}</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Total Investido</div>
+                            <div class="metric-value" style="color: #6366f1; font-weight: 600;">${Utils.formatCurrency(valorTotalInvestido)}</div>
+                        </div>
+                        ` : ''}
                         <div class="metric-item">
                             <div class="metric-label">Saldo Restante</div>
                             <div class="metric-value text-warning">${Utils.formatCurrency(saldoRestante)}</div>
                         </div>
                         <div class="metric-item">
-                            <div class="metric-label">Valor da Parcela</div>
-                            <div class="metric-value">${Utils.formatCurrency(consorcio.valorParcela)}</div>
+                            <div class="metric-label">Parcela Atual</div>
+                            <div class="metric-value">${Utils.formatCurrency(valorParcelaAtual)}</div>
+                            ${consorcio.taxaReajuste > 0 ? `<small class="text-muted">Reajuste: ${consorcio.taxaReajuste.toFixed(2)}% a.a.</small>` : ''}
                         </div>
                     </div>
                 </div>
@@ -1964,9 +2005,10 @@ const App = {
                             value="${consorcio ? consorcio.valorCredito : ''}" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label required">Valor da Parcela</label>
+                        <label class="form-label required">Valor da Parcela Inicial</label>
                         <input type="number" name="valorParcela" class="form-input" step="0.01" min="0"
                             value="${consorcio ? consorcio.valorParcela : ''}" required>
+                        <small class="text-muted">Valor da primeira parcela (sem reajuste)</small>
                     </div>
                 </div>
 
@@ -1980,6 +2022,21 @@ const App = {
                         <label class="form-label required">Parcelas Pagas</label>
                         <input type="number" name="parcelasPagas" class="form-input" min="0"
                             value="${consorcio ? consorcio.parcelasPagas : '0'}" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Taxa de Reajuste Anual (%)</label>
+                        <input type="number" name="taxaReajuste" class="form-input" step="0.01" min="0"
+                            value="${consorcio ? (consorcio.taxaReajuste || 0) : '0'}">
+                        <small class="text-muted">Ex: 8% ao ano (use 8, não 0.08)</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Valor de Prêmio/Lance</label>
+                        <input type="number" name="valorPremio" class="form-input" step="0.01" min="0"
+                            value="${consorcio ? (consorcio.valorPremio || 0) : '0'}">
+                        <small class="text-muted">Valor pago como lance ou prêmio</small>
                     </div>
                 </div>
 
@@ -2036,6 +2093,8 @@ const App = {
             valorParcela: parseFloat(formData.valorParcela),
             prazoTotal: parseInt(formData.prazoTotal),
             parcelasPagas: parseInt(formData.parcelasPagas),
+            taxaReajuste: parseFloat(formData.taxaReajuste || 0),
+            valorPremio: parseFloat(formData.valorPremio || 0),
             dataInicio: formData.dataInicio,
             contemplado: formData.contemplado === 'on',
             observacoes: formData.observacoes || ''
