@@ -1821,35 +1821,53 @@ const App = {
      * Initialize Consorcios
      */
     initConsorcios() {
+        console.log('=== Initializing Consorcios page ===');
         this.loadConsorciosList();
 
-        // Use timeout to ensure DOM is ready
+        // Use event delegation on document for more reliable event handling
         setTimeout(() => {
             const addBtn = document.getElementById('add-consorcio');
+            console.log('Searching for add-consorcio button:', addBtn);
+
             if (addBtn) {
-                // Remove any existing listeners
-                addBtn.replaceWith(addBtn.cloneNode(true));
-                const newAddBtn = document.getElementById('add-consorcio');
-                newAddBtn.addEventListener('click', () => {
+                // Remove old clone approach, use direct onclick
+                addBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Consorcio button clicked!');
                     this.showConsorcioForm();
-                });
+                };
+                console.log('✓ Event handler attached to consorcio button');
+            } else {
+                console.error('✗ add-consorcio button NOT FOUND in DOM!');
+                console.log('Available buttons:', document.querySelectorAll('button'));
             }
-        }, 100);
+        }, 200);
     },
 
     /**
-     * Calculate total paid with annual adjustments
+     * Calculate total paid from actual payments
      */
     calculateConsorcioValorPago(consorcio) {
-        const taxaReajusteMensal = consorcio.taxaReajuste ? Math.pow(1 + (consorcio.taxaReajuste / 100), 1/12) - 1 : 0;
-        let valorPagoTotal = 0;
-
-        for (let i = 0; i < consorcio.parcelasPagas; i++) {
-            const valorParcelaAjustada = consorcio.valorParcela * Math.pow(1 + taxaReajusteMensal, i);
-            valorPagoTotal += valorParcelaAjustada;
+        // If there's a payment history, use real values
+        if (consorcio.historicoParcelas && Array.isArray(consorcio.historicoParcelas)) {
+            return consorcio.historicoParcelas.reduce((sum, parcela) => sum + (parcela.valor || 0), 0);
         }
 
-        return valorPagoTotal;
+        // Fallback: use simple calculation
+        return (consorcio.parcelasPagas || 0) * (consorcio.valorParcela || 0);
+    },
+
+    /**
+     * Calculate total premiums/bids
+     */
+    calculateConsorcioTotalPremios(consorcio) {
+        if (consorcio.historicoPremios && Array.isArray(consorcio.historicoPremios)) {
+            return consorcio.historicoPremios.reduce((sum, premio) => sum + (premio.valor || 0), 0);
+        }
+
+        // Fallback: use single premium field
+        return consorcio.valorPremio || 0;
     },
 
     /**
@@ -1882,19 +1900,26 @@ const App = {
             const imovel = imoveisMap[consorcio.imovelId];
             const imovelNome = imovel ? imovel.nome : 'Não vinculado';
 
+            // Get actual number of payments from history or field
+            const numParcelas = consorcio.historicoParcelas
+                ? consorcio.historicoParcelas.length
+                : (consorcio.parcelasPagas || 0);
+
             const percentualPago = consorcio.prazoTotal > 0
-                ? (consorcio.parcelasPagas / consorcio.prazoTotal) * 100
+                ? (numParcelas / consorcio.prazoTotal) * 100
                 : 0;
 
-            // Calculate with annual adjustment
+            // Calculate with real values
             const valorPago = this.calculateConsorcioValorPago(consorcio);
-            const valorPremio = consorcio.valorPremio || 0;
-            const valorTotalInvestido = valorPago + valorPremio;
+            const valorPremios = this.calculateConsorcioTotalPremios(consorcio);
+            const valorTotalInvestido = valorPago + valorPremios;
             const saldoRestante = consorcio.valorCredito - valorPago;
 
-            // Calculate current installment value
-            const taxaReajusteMensal = consorcio.taxaReajuste ? Math.pow(1 + (consorcio.taxaReajuste / 100), 1/12) - 1 : 0;
-            const valorParcelaAtual = consorcio.valorParcela * Math.pow(1 + taxaReajusteMensal, consorcio.parcelasPagas);
+            // Get last payment value or use initial value
+            let valorUltimaParcela = consorcio.valorParcela || 0;
+            if (consorcio.historicoParcelas && consorcio.historicoParcelas.length > 0) {
+                valorUltimaParcela = consorcio.historicoParcelas[consorcio.historicoParcelas.length - 1].valor;
+            }
 
             const contemplado = consorcio.contemplado === true || consorcio.contemplado === 'true';
 
@@ -1921,7 +1946,7 @@ const App = {
                     <div class="progress-container" style="margin: 1rem 0;">
                         <div class="progress-info">
                             <span>Progresso de Pagamento</span>
-                            <span><strong>${consorcio.parcelasPagas}/${consorcio.prazoTotal}</strong> parcelas</span>
+                            <span><strong>${numParcelas}/${consorcio.prazoTotal}</strong> parcelas</span>
                         </div>
                         <div class="progress-bar-container">
                             <div class="progress-bar" style="width: ${percentualPago}%"></div>
@@ -1937,10 +1962,10 @@ const App = {
                             <div class="metric-label">Valor Pago (Parcelas)</div>
                             <div class="metric-value text-success">${Utils.formatCurrency(valorPago)}</div>
                         </div>
-                        ${valorPremio > 0 ? `
+                        ${valorPremios > 0 ? `
                         <div class="metric-item">
-                            <div class="metric-label">Prêmio/Lance</div>
-                            <div class="metric-value text-info">${Utils.formatCurrency(valorPremio)}</div>
+                            <div class="metric-label">Prêmios/Lances</div>
+                            <div class="metric-value text-info">${Utils.formatCurrency(valorPremios)}</div>
                         </div>
                         <div class="metric-item">
                             <div class="metric-label">Total Investido</div>
@@ -1952,10 +1977,18 @@ const App = {
                             <div class="metric-value text-warning">${Utils.formatCurrency(saldoRestante)}</div>
                         </div>
                         <div class="metric-item">
-                            <div class="metric-label">Parcela Atual</div>
-                            <div class="metric-value">${Utils.formatCurrency(valorParcelaAtual)}</div>
-                            ${consorcio.taxaReajuste > 0 ? `<small class="text-muted">Reajuste: ${consorcio.taxaReajuste.toFixed(2)}% a.a.</small>` : ''}
+                            <div class="metric-label">Última Parcela</div>
+                            <div class="metric-value">${Utils.formatCurrency(valorUltimaParcela)}</div>
                         </div>
+                    </div>
+
+                    <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-sm btn-outline" onclick="App.gerenciarParcelasConsorcio('${consorcio.id}')">
+                            <i class="fas fa-list"></i> Gerenciar Parcelas (${numParcelas})
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="App.gerenciarPremiosConsorcio('${consorcio.id}')">
+                            <i class="fas fa-trophy"></i> Gerenciar Prêmios/Lances
+                        </button>
                     </div>
                 </div>
             `;
@@ -2005,47 +2038,27 @@ const App = {
                             value="${consorcio ? consorcio.valorCredito : ''}" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label required">Valor da Parcela Inicial</label>
-                        <input type="number" name="valorParcela" class="form-input" step="0.01" min="0"
-                            value="${consorcio ? consorcio.valorParcela : ''}" required>
-                        <small class="text-muted">Valor da primeira parcela (sem reajuste)</small>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
                         <label class="form-label required">Prazo Total (meses)</label>
                         <input type="number" name="prazoTotal" class="form-input" min="1"
                             value="${consorcio ? consorcio.prazoTotal : ''}" required>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label required">Parcelas Pagas</label>
-                        <input type="number" name="parcelasPagas" class="form-input" min="0"
-                            value="${consorcio ? consorcio.parcelasPagas : '0'}" required>
-                    </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Taxa de Reajuste Anual (%)</label>
-                        <input type="number" name="taxaReajuste" class="form-input" step="0.01" min="0"
-                            value="${consorcio ? (consorcio.taxaReajuste || 0) : '0'}">
-                        <small class="text-muted">Ex: 8% ao ano (use 8, não 0.08)</small>
+                        <label class="form-label">Valor Estimado da Parcela</label>
+                        <input type="number" name="valorParcela" class="form-input" step="0.01" min="0"
+                            value="${consorcio ? consorcio.valorParcela : ''}">
+                        <small class="text-muted">Valor médio estimado (para referência)</small>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Valor de Prêmio/Lance</label>
-                        <input type="number" name="valorPremio" class="form-input" step="0.01" min="0"
-                            value="${consorcio ? (consorcio.valorPremio || 0) : '0'}">
-                        <small class="text-muted">Valor pago como lance ou prêmio</small>
-                    </div>
-                </div>
-
-                <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Data de Início</label>
                         <input type="date" name="dataInicio" class="form-input"
                             value="${consorcio ? consorcio.dataInicio : ''}">
                     </div>
+                </div>
+
+                <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">
                             <input type="checkbox" name="contemplado" ${consorcio && consorcio.contemplado ? 'checked' : ''}>
@@ -2053,6 +2066,13 @@ const App = {
                         </label>
                     </div>
                 </div>
+
+                ${isEdit ? `
+                <div class="alert alert-info" style="margin-top: 1rem;">
+                    <i class="fas fa-info-circle"></i>
+                    Use os botões "Gerenciar Parcelas" e "Gerenciar Prêmios/Lances" na listagem para adicionar os valores reais pagos.
+                </div>
+                ` : ''}
 
                 <div class="form-group">
                     <label class="form-label">Observações</label>
@@ -2086,18 +2106,21 @@ const App = {
             return;
         }
 
+        // Get existing consorcio to preserve history
+        const existingConsorcio = consorcioId ? DataManager.getConsorcioById(consorcioId) : null;
+
         const consorcioData = {
             imovelId: formData.imovelId,
             administradora: formData.administradora,
             valorCredito: parseFloat(formData.valorCredito),
-            valorParcela: parseFloat(formData.valorParcela),
+            valorParcela: parseFloat(formData.valorParcela || 0),
             prazoTotal: parseInt(formData.prazoTotal),
-            parcelasPagas: parseInt(formData.parcelasPagas),
-            taxaReajuste: parseFloat(formData.taxaReajuste || 0),
-            valorPremio: parseFloat(formData.valorPremio || 0),
             dataInicio: formData.dataInicio,
             contemplado: formData.contemplado === 'on',
-            observacoes: formData.observacoes || ''
+            observacoes: formData.observacoes || '',
+            // Preserve existing history
+            historicoParcelas: existingConsorcio?.historicoParcelas || [],
+            historicoPremios: existingConsorcio?.historicoPremios || []
         };
 
         if (consorcioId) {
@@ -2136,6 +2159,282 @@ const App = {
                 DataManager.deleteConsorcio(id);
                 Utils.showToast('Consórcio excluído com sucesso!', 'success');
                 this.loadConsorciosList();
+            }
+        );
+    },
+
+    /**
+     * Manage Consorcio Parcelas
+     */
+    gerenciarParcelasConsorcio(id) {
+        const consorcio = DataManager.getConsorcioById(id);
+        if (!consorcio) return;
+
+        const parcelas = consorcio.historicoParcelas || [];
+
+        let html = `
+            <div class="form">
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table">
+                        <thead style="position: sticky; top: 0; background: var(--background-color); z-index: 1;">
+                            <tr>
+                                <th>Data</th>
+                                <th>Valor</th>
+                                <th>Observação</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="parcelas-tbody">
+                            ${parcelas.length === 0 ? '<tr><td colspan="4" class="text-center text-muted">Nenhuma parcela registrada</td></tr>' : ''}
+                            ${parcelas.map((p, index) => `
+                                <tr>
+                                    <td>${Utils.formatDate(p.data)}</td>
+                                    <td>${Utils.formatCurrency(p.valor)}</td>
+                                    <td>${Utils.escapeHtml(p.obs || '-')}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger" onclick="App.removerParcelaConsorcio('${id}', ${index})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card" style="margin-top: 1rem; padding: 1rem; background: var(--card-background);">
+                    <h4 style="margin-bottom: 1rem;">Adicionar Nova Parcela</h4>
+                    <form id="add-parcela-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label required">Data do Pagamento</label>
+                                <input type="date" name="data" class="form-input" required value="${new Date().toISOString().split('T')[0]}">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required">Valor Pago</label>
+                                <input type="number" name="valor" class="form-input" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Observação</label>
+                            <input type="text" name="obs" class="form-input" placeholder="Ex: Parcela 12/120, reajuste INCC">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-plus"></i> Adicionar Parcela
+                        </button>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        Utils.showModal(
+            `Gerenciar Parcelas - ${consorcio.administradora}`,
+            html,
+            [{ text: 'Fechar', class: 'btn-secondary' }]
+        );
+
+        // Add form handler
+        setTimeout(() => {
+            const form = document.getElementById('add-parcela-form');
+            if (form) {
+                form.onsubmit = (e) => {
+                    e.preventDefault();
+                    const formData = Forms.getFormData('add-parcela-form');
+
+                    if (!formData.data || !formData.valor) {
+                        Utils.showToast('Preencha data e valor', 'error');
+                        return;
+                    }
+
+                    const novaParcela = {
+                        data: formData.data,
+                        valor: parseFloat(formData.valor),
+                        obs: formData.obs || ''
+                    };
+
+                    consorcio.historicoParcelas = consorcio.historicoParcelas || [];
+                    consorcio.historicoParcelas.push(novaParcela);
+
+                    // Sort by date
+                    consorcio.historicoParcelas.sort((a, b) => new Date(a.data) - new Date(b.data));
+
+                    DataManager.saveConsorcio(consorcio);
+                    Utils.showToast('Parcela adicionada!', 'success');
+
+                    // Reload modal
+                    Utils.closeModal();
+                    setTimeout(() => this.gerenciarParcelasConsorcio(id), 300);
+                };
+            }
+        }, 100);
+    },
+
+    /**
+     * Remove Consorcio Parcela
+     */
+    removerParcelaConsorcio(id, index) {
+        const consorcio = DataManager.getConsorcioById(id);
+        if (!consorcio) return;
+
+        Utils.showConfirm(
+            'Remover Parcela',
+            'Tem certeza que deseja remover esta parcela?',
+            () => {
+                consorcio.historicoParcelas.splice(index, 1);
+                DataManager.saveConsorcio(consorcio);
+                Utils.showToast('Parcela removida!', 'success');
+
+                // Reload modal
+                Utils.closeModal();
+                setTimeout(() => this.gerenciarParcelasConsorcio(id), 300);
+            }
+        );
+    },
+
+    /**
+     * Manage Consorcio Premios
+     */
+    gerenciarPremiosConsorcio(id) {
+        const consorcio = DataManager.getConsorcioById(id);
+        if (!consorcio) return;
+
+        const premios = consorcio.historicoPremios || [];
+
+        let html = `
+            <div class="form">
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table">
+                        <thead style="position: sticky; top: 0; background: var(--background-color); z-index: 1;">
+                            <tr>
+                                <th>Data</th>
+                                <th>Tipo</th>
+                                <th>Valor</th>
+                                <th>Observação</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${premios.length === 0 ? '<tr><td colspan="5" class="text-center text-muted">Nenhum prêmio/lance registrado</td></tr>' : ''}
+                            ${premios.map((p, index) => `
+                                <tr>
+                                    <td>${Utils.formatDate(p.data)}</td>
+                                    <td><span class="badge badge-info">${p.tipo || 'Lance'}</span></td>
+                                    <td>${Utils.formatCurrency(p.valor)}</td>
+                                    <td>${Utils.escapeHtml(p.obs || '-')}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger" onclick="App.removerPremioConsorcio('${id}', ${index})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card" style="margin-top: 1rem; padding: 1rem; background: var(--card-background);">
+                    <h4 style="margin-bottom: 1rem;">Adicionar Novo Prêmio/Lance</h4>
+                    <form id="add-premio-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label required">Data do Pagamento</label>
+                                <input type="date" name="data" class="form-input" required value="${new Date().toISOString().split('T')[0]}">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required">Tipo</label>
+                                <select name="tipo" class="form-select" required>
+                                    <option value="Lance">Lance</option>
+                                    <option value="Prêmio">Prêmio</option>
+                                    <option value="Lance Livre">Lance Livre</option>
+                                    <option value="Lance Fixo">Lance Fixo</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label required">Valor Pago</label>
+                                <input type="number" name="valor" class="form-input" step="0.01" min="0" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Observação</label>
+                                <input type="text" name="obs" class="form-input" placeholder="Ex: Lance para contemplação">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-plus"></i> Adicionar Prêmio/Lance
+                        </button>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        Utils.showModal(
+            `Gerenciar Prêmios/Lances - ${consorcio.administradora}`,
+            html,
+            [{ text: 'Fechar', class: 'btn-secondary' }]
+        );
+
+        // Add form handler
+        setTimeout(() => {
+            const form = document.getElementById('add-premio-form');
+            if (form) {
+                form.onsubmit = (e) => {
+                    e.preventDefault();
+                    const formData = Forms.getFormData('add-premio-form');
+
+                    if (!formData.data || !formData.valor) {
+                        Utils.showToast('Preencha data e valor', 'error');
+                        return;
+                    }
+
+                    const novoPremio = {
+                        data: formData.data,
+                        tipo: formData.tipo,
+                        valor: parseFloat(formData.valor),
+                        obs: formData.obs || ''
+                    };
+
+                    consorcio.historicoPremios = consorcio.historicoPremios || [];
+                    consorcio.historicoPremios.push(novoPremio);
+
+                    // Sort by date
+                    consorcio.historicoPremios.sort((a, b) => new Date(a.data) - new Date(b.data));
+
+                    DataManager.saveConsorcio(consorcio);
+                    Utils.showToast('Prêmio/Lance adicionado!', 'success');
+
+                    // Reload modal and main list
+                    Utils.closeModal();
+                    setTimeout(() => {
+                        this.gerenciarPremiosConsorcio(id);
+                        this.loadConsorciosList();
+                    }, 300);
+                };
+            }
+        }, 100);
+    },
+
+    /**
+     * Remove Consorcio Premio
+     */
+    removerPremioConsorcio(id, index) {
+        const consorcio = DataManager.getConsorcioById(id);
+        if (!consorcio) return;
+
+        Utils.showConfirm(
+            'Remover Prêmio/Lance',
+            'Tem certeza que deseja remover este prêmio/lance?',
+            () => {
+                consorcio.historicoPremios.splice(index, 1);
+                DataManager.saveConsorcio(consorcio);
+                Utils.showToast('Prêmio/Lance removido!', 'success');
+
+                // Reload modal and main list
+                Utils.closeModal();
+                setTimeout(() => {
+                    this.gerenciarPremiosConsorcio(id);
+                    this.loadConsorciosList();
+                }, 300);
             }
         );
     },
